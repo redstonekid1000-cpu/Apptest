@@ -197,8 +197,15 @@ fun PaywallScreen(viewModel: AuditViewModel, modifier: Modifier = Modifier) {
                     shape = RoundedCornerShape(12.dp),
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = EditorialTextDark,
+                        unfocusedTextColor = EditorialTextDark,
                         focusedBorderColor = EditorialPrimaryDark,
-                        focusedLabelColor = EditorialPrimaryDark
+                        unfocusedBorderColor = EditorialBorder,
+                        focusedLabelColor = EditorialPrimaryDark,
+                        unfocusedLabelColor = EditorialMutedText,
+                        focusedLeadingIconColor = EditorialPrimaryDark,
+                        unfocusedLeadingIconColor = EditorialMutedText,
+                        cursorColor = EditorialPrimaryDark
                     )
                 )
 
@@ -215,8 +222,15 @@ fun PaywallScreen(viewModel: AuditViewModel, modifier: Modifier = Modifier) {
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = EditorialTextDark,
+                        unfocusedTextColor = EditorialTextDark,
                         focusedBorderColor = EditorialPrimaryDark,
-                        focusedLabelColor = EditorialPrimaryDark
+                        unfocusedBorderColor = EditorialBorder,
+                        focusedLabelColor = EditorialPrimaryDark,
+                        unfocusedLabelColor = EditorialMutedText,
+                        focusedLeadingIconColor = EditorialPrimaryDark,
+                        unfocusedLeadingIconColor = EditorialMutedText,
+                        cursorColor = EditorialPrimaryDark
                     )
                 )
 
@@ -237,8 +251,15 @@ fun PaywallScreen(viewModel: AuditViewModel, modifier: Modifier = Modifier) {
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = EditorialTextDark,
+                            unfocusedTextColor = EditorialTextDark,
                             focusedBorderColor = EditorialPrimaryDark,
-                            focusedLabelColor = EditorialPrimaryDark
+                            unfocusedBorderColor = EditorialBorder,
+                            focusedLabelColor = EditorialPrimaryDark,
+                            unfocusedLabelColor = EditorialMutedText,
+                            focusedLeadingIconColor = EditorialPrimaryDark,
+                            unfocusedLeadingIconColor = EditorialMutedText,
+                            cursorColor = EditorialPrimaryDark
                         )
                     )
 
@@ -253,8 +274,15 @@ fun PaywallScreen(viewModel: AuditViewModel, modifier: Modifier = Modifier) {
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = EditorialTextDark,
+                            unfocusedTextColor = EditorialTextDark,
                             focusedBorderColor = EditorialPrimaryDark,
-                            focusedLabelColor = EditorialPrimaryDark
+                            unfocusedBorderColor = EditorialBorder,
+                            focusedLabelColor = EditorialPrimaryDark,
+                            unfocusedLabelColor = EditorialMutedText,
+                            focusedLeadingIconColor = EditorialPrimaryDark,
+                            unfocusedLeadingIconColor = EditorialMutedText,
+                            cursorColor = EditorialPrimaryDark
                         )
                     )
                 }

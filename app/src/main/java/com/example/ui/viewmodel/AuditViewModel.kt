@@ -56,6 +56,12 @@ class AuditViewModel(application: Application) : AndroidViewModel(application) {
     private val _selectedReport = MutableStateFlow<AuditReport?>(null)
     val selectedReport: StateFlow<AuditReport?> = _selectedReport.asStateFlow()
 
+    private val _signUpOtpRequired = MutableStateFlow(false)
+    val signUpOtpRequired: StateFlow<Boolean> = _signUpOtpRequired.asStateFlow()
+
+    private val _generatedOtp = MutableStateFlow("")
+    val generatedOtp: StateFlow<String> = _generatedOtp.asStateFlow()
+
     // Loading & Error States
     private val _isProcessingAuth = MutableStateFlow(false)
     val isProcessingAuth: StateFlow<Boolean> = _isProcessingAuth.asStateFlow()
@@ -104,28 +110,27 @@ class AuditViewModel(application: Application) : AndroidViewModel(application) {
                 }
 
                 if (isSignUp) {
-                    val existing = userRepository.getUserByEmail(email)
+                    val trimmedEmail = email.trim()
+                    if (!trimmedEmail.endsWith("@gmail.com", ignoreCase = true)) {
+                        _authError.value = "Please enter a valid Gmail address (ending with @gmail.com) to receive an activation code."
+                        _isProcessingAuth.value = false
+                        return@launch
+                    }
+                    val existing = userRepository.getUserByEmail(trimmedEmail)
                     if (existing != null) {
                         _authError.value = "An account with this email already exists."
                     } else {
-                        val newUser = User(
-                            email = email,
-                            passwordHash = passwordHash,
-                            displayName = displayName,
-                            isSubscribed = false
-                        )
-                        val id = userRepository.registerUser(newUser)
-                        val createdUser = newUser.copy(id = id)
-                        _currentUser.value = createdUser
-                        _currentScreen.value = Screen.Paywall
+                        val code = (1000..9999).random().toString()
+                        _generatedOtp.value = code
+                        _signUpOtpRequired.value = true
                     }
                 } else {
-                    val user = userRepository.getUserByEmail(email)
+                    val user = userRepository.getUserByEmail(email.trim())
                     if (user == null || user.passwordHash != passwordHash) {
                         _authError.value = "Invalid email or password."
                     } else {
                         _currentUser.value = user
-                        if (user.isSubscribed) {
+                        if (user.isSubscribed || user.trialUses < 3) {
                             _currentScreen.value = Screen.Dashboard
                         } else {
                             _currentScreen.value = Screen.Paywall
@@ -138,6 +143,47 @@ class AuditViewModel(application: Application) : AndroidViewModel(application) {
                 _isProcessingAuth.value = false
             }
         }
+    }
+
+    fun verifyAndRegister(email: String, passwordHash: String, displayName: String, enteredCode: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _isProcessingAuth.value = true
+            _authError.value = null
+            try {
+                if (enteredCode != _generatedOtp.value) {
+                    _authError.value = "Incorrect verification code. Please check and try again."
+                    _isProcessingAuth.value = false
+                    return@launch
+                }
+                
+                val newUser = User(
+                    email = email.trim(),
+                    passwordHash = passwordHash,
+                    displayName = displayName,
+                    isSubscribed = false,
+                    trialUses = 0
+                )
+                val id = userRepository.registerUser(newUser)
+                val createdUser = newUser.copy(id = id)
+                _currentUser.value = createdUser
+                _signUpOtpRequired.value = false
+                _currentScreen.value = Screen.Dashboard
+            } catch (e: Exception) {
+                _authError.value = "Failed to create account: ${e.localizedMessage}"
+            } finally {
+                _isProcessingAuth.value = false
+            }
+        }
+    }
+
+    fun cancelOtpVerification() {
+        _signUpOtpRequired.value = false
+        _generatedOtp.value = ""
+        _authError.value = null
+    }
+
+    fun navigateToPaywall() {
+        _currentScreen.value = Screen.Paywall
     }
 
     fun logout() {
@@ -231,6 +277,12 @@ class AuditViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
 
+        if (!user.isSubscribed && user.trialUses >= 3) {
+            _auditError.value = "Trial expired. Please subscribe to continue using The Audit."
+            _currentScreen.value = Screen.Paywall
+            return
+        }
+
         viewModelScope.launch(Dispatchers.IO) {
             _isAuditRunning.value = true
             _auditError.value = null
@@ -269,6 +321,13 @@ class AuditViewModel(application: Application) : AndroidViewModel(application) {
                 }
 
                 auditReportRepository.insertReport(auditReport)
+
+                if (!user.isSubscribed) {
+                    val updatedUser = user.copy(trialUses = user.trialUses + 1)
+                    userRepository.updateUser(updatedUser)
+                    _currentUser.value = updatedUser
+                }
+
                 _selectedReport.value = auditReport
                 _currentTab.value = DashboardTab.History
             } catch (e: Exception) {

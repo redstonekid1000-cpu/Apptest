@@ -150,6 +150,55 @@ fun OverviewTabContent(viewModel: AuditViewModel) {
             )
         }
 
+        val isSubscribed = currentUser?.isSubscribed == true
+        if (!isSubscribed) {
+            val trialUses = currentUser?.trialUses ?: 0
+            val remaining = (3 - trialUses).coerceAtLeast(0)
+            
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 8.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(EditorialPurpleCard)
+                    .border(1.dp, EditorialPrimaryDark.copy(alpha = 0.2f), RoundedCornerShape(16.dp))
+                    .padding(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Free Trial: $remaining of 3 remaining",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                            color = EditorialPrimaryDark
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "You have $remaining free AI reviews. Upgrade for unlimited scans.",
+                            fontSize = 12.sp,
+                            color = EditorialMutedText
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = { viewModel.navigateToPaywall() },
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = EditorialPrimaryDark,
+                            contentColor = Color.White
+                        ),
+                        modifier = Modifier.height(36.dp)
+                    ) {
+                        Text(text = "Subscribe", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+
         Spacer(modifier = Modifier.height(16.dp))
 
         // Audits Dashboard Highlights
@@ -411,8 +460,15 @@ fun OverviewTabContent(viewModel: AuditViewModel) {
                 shape = RoundedCornerShape(12.dp),
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = EditorialTextDark,
+                    unfocusedTextColor = EditorialTextDark,
                     focusedBorderColor = EditorialPrimaryDark,
-                    focusedLabelColor = EditorialPrimaryDark
+                    unfocusedBorderColor = EditorialBorder,
+                    focusedLabelColor = EditorialPrimaryDark,
+                    unfocusedLabelColor = EditorialMutedText,
+                    focusedLeadingIconColor = EditorialPrimaryDark,
+                    unfocusedLeadingIconColor = EditorialMutedText,
+                    cursorColor = EditorialPrimaryDark
                 )
             )
 
@@ -430,8 +486,15 @@ fun OverviewTabContent(viewModel: AuditViewModel) {
                 shape = RoundedCornerShape(12.dp),
                 maxLines = 5,
                 colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = EditorialTextDark,
+                    unfocusedTextColor = EditorialTextDark,
                     focusedBorderColor = EditorialPrimaryDark,
-                    focusedLabelColor = EditorialPrimaryDark
+                    unfocusedBorderColor = EditorialBorder,
+                    focusedLabelColor = EditorialPrimaryDark,
+                    unfocusedLabelColor = EditorialMutedText,
+                    focusedLeadingIconColor = EditorialPrimaryDark,
+                    unfocusedLeadingIconColor = EditorialMutedText,
+                    cursorColor = EditorialPrimaryDark
                 )
             )
 
@@ -734,6 +797,8 @@ fun HistoryTabContent(viewModel: AuditViewModel) {
 @Composable
 fun SettingsTabContent(viewModel: AuditViewModel) {
     val currentUser by viewModel.currentUser.collectAsState()
+    val isSubscribed = currentUser?.isSubscribed == true
+    val trialUses = currentUser?.trialUses ?: 0
 
     Column(
         modifier = Modifier
@@ -742,7 +807,7 @@ fun SettingsTabContent(viewModel: AuditViewModel) {
             .padding(horizontal = 24.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        HeaderComponent(userInitials = "YE", titleText = "Workspace Settings")
+        HeaderComponent(userInitials = getInitials(currentUser?.displayName ?: "JD"), titleText = "Workspace Settings")
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -765,7 +830,8 @@ fun SettingsTabContent(viewModel: AuditViewModel) {
                 )
 
                 Text(
-                    text = "You are currently subscribed to the Premium Audit Club.",
+                    text = if (isSubscribed) "You are currently subscribed to the Premium Audit Club."
+                           else "You are currently using the Free Trial version of The Audit.",
                     fontSize = 13.sp,
                     color = EditorialTextDark
                 )
@@ -784,32 +850,64 @@ fun SettingsTabContent(viewModel: AuditViewModel) {
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text(text = "Monthly Subscription Plan", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = EditorialPrimaryDark)
-                            Text(text = "Active", color = Color(0xFF388E3C), fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Text(
+                                text = if (isSubscribed) "Monthly Subscription Plan" else "Free Trial Access", 
+                                fontWeight = FontWeight.Bold, 
+                                fontSize = 13.sp, 
+                                color = EditorialPrimaryDark
+                            )
+                            Text(
+                                text = if (isSubscribed) "Active" else "Trial ($trialUses/3)", 
+                                color = if (isSubscribed) Color(0xFF388E3C) else Color(0xFF6750A4), 
+                                fontWeight = FontWeight.Bold, 
+                                fontSize = 13.sp
+                            )
                         }
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text(text = "Price: $1.00 USD / Month", fontSize = 12.sp, color = EditorialMutedText)
-                        if (currentUser?.subscriptionCardNumberSuffix != null) {
-                            Text(text = "Card: Visa ending in ${currentUser?.subscriptionCardNumberSuffix}", fontSize = 12.sp, color = EditorialMutedText)
+                        if (isSubscribed) {
+                            Text(text = "Price: $1.00 USD / Month", fontSize = 12.sp, color = EditorialMutedText)
+                            if (currentUser?.subscriptionCardNumberSuffix != null) {
+                                Text(text = "Card: Visa ending in ${currentUser?.subscriptionCardNumberSuffix}", fontSize = 12.sp, color = EditorialMutedText)
+                            }
+                        } else {
+                            val remaining = (3 - trialUses).coerceAtLeast(0)
+                            Text(text = "Remaining audits: $remaining left. Upgrade to remove limits.", fontSize = 12.sp, color = EditorialMutedText)
                         }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                Button(
-                    onClick = { viewModel.cancelSubscription() },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp)
-                        .testTag("cancel_sub_button"),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFF3EDF7),
-                        contentColor = Color(0xFFB3261E)
-                    )
-                ) {
-                    Text(text = "Cancel Subscription", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                if (isSubscribed) {
+                    Button(
+                        onClick = { viewModel.cancelSubscription() },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .testTag("cancel_sub_button"),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFF3EDF7),
+                            contentColor = Color(0xFFB3261E)
+                        )
+                    ) {
+                        Text(text = "Cancel Subscription", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    }
+                } else {
+                    Button(
+                        onClick = { viewModel.navigateToPaywall() },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .testTag("upgrade_sub_button"),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = EditorialPrimaryDark,
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Text(text = "Upgrade to Premium ($1/mo)", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    }
                 }
             }
         }

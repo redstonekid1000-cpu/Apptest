@@ -11,5 +11,6 @@ data class User(
     val displayName: String,
     val isSubscribed: Boolean = false,
     val subscriptionCardNumberSuffix: String? = null,
-    val subscriptionDate: Long? = null
+    val subscriptionDate: Long? = null,
+    val trialUses: Int = 0
 )

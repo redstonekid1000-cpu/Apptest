@@ -143,108 +143,254 @@ fun AuthScreen(viewModel: AuditViewModel, modifier: Modifier = Modifier) {
         Spacer(modifier = Modifier.height(28.dp))
 
         // Card form
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(28.dp))
-                .background(Color.White)
-                .border(1.dp, EditorialBorder, RoundedCornerShape(28.dp))
-                .padding(24.dp)
-        ) {
-            Text(
-                text = if (isSignUp) "Create Account" else "Welcome Back",
-                fontFamily = FontFamily.Serif,
-                fontSize = 24.sp,
-                fontStyle = FontStyle.Italic,
-                fontWeight = FontWeight.Medium,
-                color = EditorialPrimaryDark,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
+        val signUpOtpRequired by viewModel.signUpOtpRequired.collectAsState()
+        val generatedOtp by viewModel.generatedOtp.collectAsState()
+        var enteredOtp by remember { mutableStateOf("") }
 
-            if (isSignUp) {
+        if (signUpOtpRequired) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(28.dp))
+                    .background(Color.White)
+                    .border(1.dp, EditorialBorder, RoundedCornerShape(28.dp))
+                    .padding(24.dp)
+            ) {
+                Text(
+                    text = "Confirm Gmail Address",
+                    fontFamily = FontFamily.Serif,
+                    fontSize = 24.sp,
+                    fontStyle = FontStyle.Italic,
+                    fontWeight = FontWeight.Medium,
+                    color = EditorialPrimaryDark,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+
+                Text(
+                    text = "We sent a 4-digit verification code to $email. Please enter it to verify. Since this is a local sandbox environment:",
+                    fontSize = 13.sp,
+                    color = EditorialMutedText,
+                    lineHeight = 18.sp,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(EditorialPurpleCard)
+                        .padding(12.dp)
+                        .padding(bottom = 4.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Sandbox Activation Code: $generatedOtp",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp,
+                        color = EditorialPrimaryDark
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
                 OutlinedTextField(
-                    value = displayName,
-                    onValueChange = { displayName = it },
-                    label = { Text("Display Name") },
-                    leadingIcon = { Icon(Icons.Default.Person, "Name Icon") },
-                    modifier = Modifier.fillMaxWidth().testTag("input_display_name"),
+                    value = enteredOtp,
+                    onValueChange = { if (it.length <= 4) enteredOtp = it },
+                    label = { Text("4-Digit OTP Code") },
+                    placeholder = { Text("e.g. $generatedOtp") },
+                    leadingIcon = { Icon(Icons.Default.Lock, "OTP Security Icon") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth().testTag("input_otp_code"),
                     shape = RoundedCornerShape(12.dp),
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = EditorialTextDark,
+                        unfocusedTextColor = EditorialTextDark,
                         focusedBorderColor = EditorialPrimaryDark,
-                        focusedLabelColor = EditorialPrimaryDark
+                        unfocusedBorderColor = EditorialBorder,
+                        focusedLabelColor = EditorialPrimaryDark,
+                        unfocusedLabelColor = EditorialMutedText,
+                        focusedLeadingIconColor = EditorialPrimaryDark,
+                        unfocusedLeadingIconColor = EditorialMutedText,
+                        cursorColor = EditorialPrimaryDark
                     )
                 )
-                Spacer(modifier = Modifier.height(14.dp))
-            }
 
-            OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
-                label = { Text("Email Address") },
-                leadingIcon = { Icon(Icons.Default.Email, "Email Icon") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                modifier = Modifier.fillMaxWidth().testTag("input_email"),
-                shape = RoundedCornerShape(12.dp),
-                singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = EditorialPrimaryDark,
-                    focusedLabelColor = EditorialPrimaryDark
-                )
-            )
+                if (error != null) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = error ?: "",
+                        color = Color(0xFFB3261E),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
 
-            Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
-            OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
-                label = { Text("Password") },
-                leadingIcon = { Icon(Icons.Default.Lock, "Lock Icon") },
-                visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                modifier = Modifier.fillMaxWidth().testTag("input_password"),
-                shape = RoundedCornerShape(12.dp),
-                singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = EditorialPrimaryDark,
-                    focusedLabelColor = EditorialPrimaryDark
-                )
-            )
+                Button(
+                    onClick = { viewModel.verifyAndRegister(email, password, displayName, enteredOtp) },
+                    enabled = !isLoading,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp)
+                        .testTag("submit_otp_button"),
+                    shape = RoundedCornerShape(26.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = EditorialPrimaryDark,
+                        contentColor = Color.White
+                    )
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(color = Color.White, modifier = Modifier.height(24.dp).width(24.dp))
+                    } else {
+                        Text(
+                            text = "Verify & Access Trial",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            letterSpacing = 0.5.sp
+                        )
+                    }
+                }
 
-            if (error != null) {
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(16.dp))
+
                 Text(
-                    text = error ?: "",
-                    color = Color(0xFFB3261E),
+                    text = "Go Back & Edit Info",
                     fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.Bold,
+                    color = EditorialPrimaryDark,
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .clickable { viewModel.cancelOtpVerification() }
+                        .padding(8.dp)
                 )
             }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Button(
-                onClick = { viewModel.handleAuthentication(isSignUp, email, password, displayName) },
-                enabled = !isLoading,
+        } else {
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp)
-                    .testTag("submit_auth_button"),
-                shape = RoundedCornerShape(26.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = EditorialPrimaryDark,
-                    contentColor = Color.White
-                )
+                    .clip(RoundedCornerShape(28.dp))
+                    .background(Color.White)
+                    .border(1.dp, EditorialBorder, RoundedCornerShape(28.dp))
+                    .padding(24.dp)
             ) {
-                if (isLoading) {
-                    CircularProgressIndicator(color = Color.White, modifier = Modifier.height(24.dp).width(24.dp))
-                } else {
-                    Text(
-                        text = if (isSignUp) "Get Subscription Access" else "Sign In",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
-                        letterSpacing = 0.5.sp
+                Text(
+                    text = if (isSignUp) "Create Account" else "Welcome Back",
+                    fontFamily = FontFamily.Serif,
+                    fontSize = 24.sp,
+                    fontStyle = FontStyle.Italic,
+                    fontWeight = FontWeight.Medium,
+                    color = EditorialPrimaryDark,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                if (isSignUp) {
+                    OutlinedTextField(
+                        value = displayName,
+                        onValueChange = { displayName = it },
+                        label = { Text("Display Name") },
+                        leadingIcon = { Icon(Icons.Default.Person, "Name Icon") },
+                        modifier = Modifier.fillMaxWidth().testTag("input_display_name"),
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = EditorialTextDark,
+                            unfocusedTextColor = EditorialTextDark,
+                            focusedBorderColor = EditorialPrimaryDark,
+                            unfocusedBorderColor = EditorialBorder,
+                            focusedLabelColor = EditorialPrimaryDark,
+                            unfocusedLabelColor = EditorialMutedText,
+                            focusedLeadingIconColor = EditorialPrimaryDark,
+                            unfocusedLeadingIconColor = EditorialMutedText,
+                            cursorColor = EditorialPrimaryDark
+                        )
                     )
+                    Spacer(modifier = Modifier.height(14.dp))
+                }
+
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text("Email Address") },
+                    leadingIcon = { Icon(Icons.Default.Email, "Email Icon") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    modifier = Modifier.fillMaxWidth().testTag("input_email"),
+                    shape = RoundedCornerShape(12.dp),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = EditorialTextDark,
+                        unfocusedTextColor = EditorialTextDark,
+                        focusedBorderColor = EditorialPrimaryDark,
+                        unfocusedBorderColor = EditorialBorder,
+                        focusedLabelColor = EditorialPrimaryDark,
+                        unfocusedLabelColor = EditorialMutedText,
+                        focusedLeadingIconColor = EditorialPrimaryDark,
+                        unfocusedLeadingIconColor = EditorialMutedText,
+                        cursorColor = EditorialPrimaryDark
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text("Password") },
+                    leadingIcon = { Icon(Icons.Default.Lock, "Lock Icon") },
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    modifier = Modifier.fillMaxWidth().testTag("input_password"),
+                    shape = RoundedCornerShape(12.dp),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = EditorialTextDark,
+                        unfocusedTextColor = EditorialTextDark,
+                        focusedBorderColor = EditorialPrimaryDark,
+                        unfocusedBorderColor = EditorialBorder,
+                        focusedLabelColor = EditorialPrimaryDark,
+                        unfocusedLabelColor = EditorialMutedText,
+                        focusedLeadingIconColor = EditorialPrimaryDark,
+                        unfocusedLeadingIconColor = EditorialMutedText,
+                        cursorColor = EditorialPrimaryDark
+                    )
+                )
+
+                if (error != null) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = error ?: "",
+                        color = Color(0xFFB3261E),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Button(
+                    onClick = { viewModel.handleAuthentication(isSignUp, email, password, displayName) },
+                    enabled = !isLoading,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp)
+                        .testTag("submit_auth_button"),
+                    shape = RoundedCornerShape(26.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = EditorialPrimaryDark,
+                        contentColor = Color.White
+                    )
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(color = Color.White, modifier = Modifier.height(24.dp).width(24.dp))
+                    } else {
+                        Text(
+                            text = if (isSignUp) "Get Subscription Access" else "Sign In",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            letterSpacing = 0.5.sp
+                        )
+                    }
                 }
             }
         }
