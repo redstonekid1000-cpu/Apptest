@@ -120,6 +120,9 @@ class HandwritingRenderer {
         val textBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val textCanvas = Canvas(textBitmap)
 
+        val isCustomFontUsed = (fontPath != null && fontPath.contains("user_custom_font")) || 
+                               (hebrewFontPath != null && hebrewFontPath.contains("user_custom_hebrew_font"))
+
         // Setup base paint for rendering text
         val baseInkColor = if (inkColor == InkColor.PENCIL) getPencilColor(20) else inkColor.colorVal
         val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -127,8 +130,11 @@ class HandwritingRenderer {
             style = Paint.Style.FILL
             textSize = baseFontSize
             // Apply slight blur for soft analog ink pen look matching python's Gaussian radius 0.5
-            if (applyPencilBlend) {
+            // Use extremely sharp settings for custom fonts so they do not blur off
+            if (applyPencilBlend && !isCustomFontUsed) {
                 maskFilter = BlurMaskFilter(1.2f, BlurMaskFilter.Blur.NORMAL)
+            } else if (applyPencilBlend && isCustomFontUsed) {
+                maskFilter = BlurMaskFilter(0.4f, BlurMaskFilter.Blur.NORMAL)
             }
         }
 
@@ -263,12 +269,15 @@ class HandwritingRenderer {
                     textPaint.typeface = if (useHebrew) hebrewTypeface else standardTypeface
 
                     if (applyPencilBlend) {
-                        val reduce = (20 * imperfectionLevel).toInt()
+                        val reduce = if (isCustomFontUsed) (5 * imperfectionLevel).toInt() else (20 * imperfectionLevel).toInt()
                         val alphaBase = 255 - reduce - wordRng.nextInt(15)
-                        textPaint.alpha = alphaBase.coerceIn(160, 255)
+                        textPaint.alpha = alphaBase.coerceIn(if (isCustomFontUsed) 220 else 160, 255)
 
                         // Downstroke letters get slightly bolder paint strokes
-                        if ("bdfhijkltpqugyBDFHIJKLTPQUGY".contains(char)) {
+                        if (isCustomFontUsed) {
+                            textPaint.strokeWidth = 1.2f + (wordRng.nextFloat() * 0.4f * imperfectionLevel)
+                            textPaint.style = Paint.Style.FILL_AND_STROKE
+                        } else if ("bdfhijkltpqugyBDFHIJKLTPQUGY".contains(char)) {
                             textPaint.strokeWidth = 1f + (wordRng.nextFloat() * 1.0f * imperfectionLevel)
                             textPaint.style = Paint.Style.FILL_AND_STROKE
                         } else {
@@ -277,8 +286,13 @@ class HandwritingRenderer {
                         }
                     } else {
                         textPaint.alpha = 255
-                        textPaint.strokeWidth = 1f
-                        textPaint.style = Paint.Style.FILL
+                        if (isCustomFontUsed) {
+                            textPaint.strokeWidth = 1.2f
+                            textPaint.style = Paint.Style.FILL_AND_STROKE
+                        } else {
+                            textPaint.strokeWidth = 1f
+                            textPaint.style = Paint.Style.FILL
+                        }
                     }
 
                     textPaint.textSize = baseFontSize * sizeScale
@@ -287,7 +301,7 @@ class HandwritingRenderer {
                     
                     val charWidth = textPaint.measureText(char.toString())
                     val pasteX = x - charWidth
-                    val specialHebrewShift = if (char == 'י') (baseFontSize * 0.5f) else 0f
+                    val specialHebrewShift = if (char == 'י') (if (isCustomFontUsed) 0f else baseFontSize * 0.1f) else 0f
                     val pasteY = currentY + vJitter - specialHebrewShift
 
                     textCanvas.translate(pasteX, pasteY)
@@ -387,11 +401,14 @@ class HandwritingRenderer {
                     textPaint.typeface = if (useHebrew) hebrewTypeface else standardTypeface
 
                     if (applyPencilBlend) {
-                        val reduce = (20 * imperfectionLevel).toInt()
+                        val reduce = if (isCustomFontUsed) (5 * imperfectionLevel).toInt() else (20 * imperfectionLevel).toInt()
                         val alphaBase = 255 - reduce - wordRng.nextInt(15)
-                        textPaint.alpha = alphaBase.coerceIn(160, 255)
+                        textPaint.alpha = alphaBase.coerceIn(if (isCustomFontUsed) 220 else 160, 255)
 
-                        if ("bdfhijkltpqugyBDFHIJKLTPQUGY".contains(char)) {
+                        if (isCustomFontUsed) {
+                            textPaint.strokeWidth = 1.2f + (wordRng.nextFloat() * 0.4f * imperfectionLevel)
+                            textPaint.style = Paint.Style.FILL_AND_STROKE
+                        } else if ("bdfhijkltpqugyBDFHIJKLTPQUGY".contains(char)) {
                             textPaint.strokeWidth = 1f + (wordRng.nextFloat() * 1.0f * imperfectionLevel)
                             textPaint.style = Paint.Style.FILL_AND_STROKE
                         } else {
@@ -400,8 +417,13 @@ class HandwritingRenderer {
                         }
                     } else {
                         textPaint.alpha = 255
-                        textPaint.strokeWidth = 1f
-                        textPaint.style = Paint.Style.FILL
+                        if (isCustomFontUsed) {
+                            textPaint.strokeWidth = 1.2f
+                            textPaint.style = Paint.Style.FILL_AND_STROKE
+                        } else {
+                            textPaint.strokeWidth = 1f
+                            textPaint.style = Paint.Style.FILL
+                        }
                     }
 
                     textPaint.textSize = baseFontSize * sizeScale
@@ -429,7 +451,8 @@ class HandwritingRenderer {
 
         // 5. Meticulously blend transparent text ink directly with the background paper textures & lines
         val blendedBitmap = if (applyPencilBlend) {
-            blendPixelInk(textBitmap, canvasBitmap, blendFactor = 40)
+            val actualBlendFactor = if (isCustomFontUsed) 15 else 40
+            blendPixelInk(textBitmap, canvasBitmap, blendFactor = actualBlendFactor)
         } else {
             blendPixelInk(textBitmap, canvasBitmap, blendFactor = 0)
         }
@@ -581,22 +604,22 @@ class HandwritingRenderer {
         matrix.postSkew(shearFactor, 0f)
         canvas.drawBitmap(input, matrix, null)
 
-        // 2. Adjust brightness (50%) and contrast (70%) matching python:
-        // final_img = ImageEnhance.Brightness(result).enhance(0.5)
-        // final_img = ImageEnhance.Contrast(final_img).enhance(0.7)
+        // 2. Adjust brightness (94%) and contrast (84%) to be extremely bright, clear and legible
         if (applyLighting) {
             val paint = Paint(Paint.ANTI_ALIAS_FLAG)
             
             // Contrast adjustment formula: s * color + (1 - s) * 128
-            // Brightness scaling: 0.5f on top
-            val c = 0.7f
-            val bOffset = 128f * (1f - c)
+            // Brightness scaling: 0.94f for beautiful high-quality scanning lookup
+            val c = 0.84f
+            val brightness = 0.94f
+            val scale = c * brightness
+            val bOffset = 128f * (1f - c) * brightness
             
             // Build 4x5 color adjustment matrix
             val colorMatrix = ColorMatrix(floatArrayOf(
-                c * 0.5f, 0f, 0f, 0f, bOffset * 0.5f,
-                0f, c * 0.5f, 0f, 0f, bOffset * 0.5f,
-                0f, 0f, c * 0.5f, 0f, bOffset * 0.5f,
+                scale, 0f, 0f, 0f, bOffset,
+                0f, scale, 0f, 0f, bOffset,
+                0f, 0f, scale, 0f, bOffset,
                 0f, 0f, 0f, 1f, 0f
             ))
             
