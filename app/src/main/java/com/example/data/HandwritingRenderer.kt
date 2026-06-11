@@ -187,6 +187,12 @@ class HandwritingRenderer {
                 var currentWordTuple: Triple<Int, Int, String>? = null
                 var wordRng = java.util.Random(lineIdx.toLong())
 
+                var wordSizeScale = 1.0f
+                var wordRot = 0f
+                var wordSkew = 0f
+                var wordVOffset = 0f
+                var wordAdvanceMult = 0.95f
+
                 while (charIdx < line.length) {
                     val char = line[charIdx]
 
@@ -208,27 +214,49 @@ class HandwritingRenderer {
 
                     // Seeding word-based randomizer for consistent spacing/slant
                     if (currentWordTuple == null) {
+                        var matchedWord = false
                         for (w in words) {
                             if (charIdx >= w.first && charIdx < w.second) {
                                 currentWordTuple = w
                                 val seed = getWordSeed(w.third, lineIdx, wordIdx)
                                 wordRng = java.util.Random(seed)
                                 wordIdx++
+                                matchedWord = true
                                 break
                             }
+                        }
+                        if (matchedWord) {
+                            // Unified parent traits for the entire word to maintain graphic cohesion
+                            wordSizeScale = 1.0f + (wordRng.nextFloat() * 0.12f - 0.06f) * imperfectionLevel
+                            wordRot = (wordRng.nextFloat() * 3.5f - 1.75f) * imperfectionLevel
+                            wordSkew = (wordRng.nextFloat() * 0.08f - 0.04f) * imperfectionLevel
+                            wordVOffset = (wordRng.nextFloat() * 2.5f - 1.25f) * imperfectionLevel
+                            wordAdvanceMult = 0.92f + (wordRng.nextFloat() * 0.06f - 0.03f) * imperfectionLevel
+                        } else {
+                            wordSizeScale = 1.0f
+                            wordRot = 0f
+                            wordSkew = 0f
+                            wordVOffset = 0f
+                            wordAdvanceMult = 0.95f
                         }
                     }
 
                     drift += driftRate + (wordRng.nextFloat() * 0.1f - 0.05f) * imperfectionLevel
                     drift = drift.coerceIn(-4f, 4f)
                     val currentY = yBase + drift.toInt()
-                    val vJitter = (wordRng.nextInt(5) - 2) * imperfectionLevel
+                    
+                    // Fine character-level jitter applied on top of unified word traits
+                    val localSizeVar = (wordRng.nextFloat() * 0.03f - 0.015f) * imperfectionLevel
+                    val sizeScale = wordSizeScale + localSizeVar
 
-                    // Letter scale changes: +/-15% base, 10% chance of +/-25% outlier
-                    var sizeScale = 1.0f + (wordRng.nextFloat() * 0.3f - 0.15f) * imperfectionLevel
-                    if (wordRng.nextFloat() < 0.10f) {
-                        sizeScale = 1.0f + (wordRng.nextFloat() * 0.5f - 0.25f) * imperfectionLevel
-                    }
+                    val localRotVar = (wordRng.nextFloat() * 1.5f - 0.75f) * imperfectionLevel
+                    val charRot = wordRot + localRotVar
+
+                    val localSkewVar = (wordRng.nextFloat() * 0.02f - 0.01f) * imperfectionLevel
+                    val charSkew = wordSkew + localSkewVar
+
+                    val localVVar = (wordRng.nextFloat() * 1.5f - 0.75f) * imperfectionLevel
+                    val vJitter = (wordVOffset + localVVar).toInt()
 
                     // Pressure & pen ink variations
                     val useHebrew = isHebrewChar(char)
@@ -241,7 +269,7 @@ class HandwritingRenderer {
 
                         // Downstroke letters get slightly bolder paint strokes
                         if ("bdfhijkltpqugyBDFHIJKLTPQUGY".contains(char)) {
-                            textPaint.strokeWidth = 1f + (wordRng.nextFloat() * 1.5f * imperfectionLevel)
+                            textPaint.strokeWidth = 1f + (wordRng.nextFloat() * 1.0f * imperfectionLevel)
                             textPaint.style = Paint.Style.FILL_AND_STROKE
                         } else {
                             textPaint.strokeWidth = 1f
@@ -256,10 +284,6 @@ class HandwritingRenderer {
                     textPaint.textSize = baseFontSize * sizeScale
 
                     textCanvas.save()
-                    
-                    // Slant & tilt rotations matching Python transforms
-                    val charRot = (wordRng.nextFloat() * 7f - 3.5f) * imperfectionLevel
-                    val charSkew = (wordRng.nextFloat() * 0.16f - 0.08f) * imperfectionLevel
                     
                     val charWidth = textPaint.measureText(char.toString())
                     val pasteX = x - charWidth
@@ -276,9 +300,9 @@ class HandwritingRenderer {
                     textCanvas.drawText(char.toString(), 0f, 0f, textPaint)
                     textCanvas.restore()
 
-                    // Horizontal step
-                    val spacingVar = (wordRng.nextFloat() * 0.4f - 0.2f) * imperfectionLevel
-                    val advance = charWidth * (1.30f + spacingVar) + 4f
+                    // Horizontal step with a beautifully compact, slightly overlapping or connected cursive margin
+                    val spacingVar = (wordRng.nextFloat() * 0.04f - 0.02f) * imperfectionLevel
+                    val advance = charWidth * (wordAdvanceMult + spacingVar)
                     x -= advance
                     charIdx++
                 }
@@ -288,6 +312,12 @@ class HandwritingRenderer {
                 var charIdx = 0
                 var currentWordTuple: Triple<Int, Int, String>? = null
                 var wordRng = java.util.Random(lineIdx.toLong())
+
+                var wordSizeScale = 1.0f
+                var wordRot = 0f
+                var wordSkew = 0f
+                var wordVOffset = 0f
+                var wordAdvanceMult = 1.02f
 
                 while (charIdx < line.length) {
                     val char = line[charIdx]
@@ -309,26 +339,49 @@ class HandwritingRenderer {
                     }
 
                     if (currentWordTuple == null) {
+                        var matchedWord = false
                         for (w in words) {
                             if (charIdx >= w.first && charIdx < w.second) {
                                 currentWordTuple = w
                                 val seed = getWordSeed(w.third, lineIdx, wordIdx)
                                 wordRng = java.util.Random(seed)
                                 wordIdx++
+                                matchedWord = true
                                 break
                             }
+                        }
+                        if (matchedWord) {
+                            // Unified parent traits for the entire LTR word
+                            wordSizeScale = 1.0f + (wordRng.nextFloat() * 0.12f - 0.06f) * imperfectionLevel
+                            wordRot = (wordRng.nextFloat() * 3.5f - 1.75f) * imperfectionLevel
+                            wordSkew = (wordRng.nextFloat() * 0.08f - 0.04f) * imperfectionLevel
+                            wordVOffset = (wordRng.nextFloat() * 2.5f - 1.25f) * imperfectionLevel
+                            wordAdvanceMult = 1.02f + (wordRng.nextFloat() * 0.06f - 0.03f) * imperfectionLevel
+                        } else {
+                            wordSizeScale = 1.0f
+                            wordRot = 0f
+                            wordSkew = 0f
+                            wordVOffset = 0f
+                            wordAdvanceMult = 1.02f
                         }
                     }
 
                     drift += driftRate + (wordRng.nextFloat() * 0.1f - 0.05f) * imperfectionLevel
                     drift = drift.coerceIn(-4f, 4f)
                     val currentY = yBase + drift.toInt()
-                    val vJitter = (wordRng.nextInt(5) - 2) * imperfectionLevel
+                    
+                    // Fine character-level jitter applied on top of unified word traits
+                    val localSizeVar = (wordRng.nextFloat() * 0.03f - 0.015f) * imperfectionLevel
+                    val sizeScale = wordSizeScale + localSizeVar
 
-                    var sizeScale = 1.0f + (wordRng.nextFloat() * 0.3f - 0.15f) * imperfectionLevel
-                    if (wordRng.nextFloat() < 0.10f) {
-                        sizeScale = 1.0f + (wordRng.nextFloat() * 0.5f - 0.25f) * imperfectionLevel
-                    }
+                    val localRotVar = (wordRng.nextFloat() * 1.5f - 0.75f) * imperfectionLevel
+                    val charRot = wordRot + localRotVar
+
+                    val localSkewVar = (wordRng.nextFloat() * 0.02f - 0.01f) * imperfectionLevel
+                    val charSkew = wordSkew + localSkewVar
+
+                    val localVVar = (wordRng.nextFloat() * 1.5f - 0.75f) * imperfectionLevel
+                    val vJitter = (wordVOffset + localVVar).toInt()
 
                     val useHebrew = isHebrewChar(char)
                     textPaint.typeface = if (useHebrew) hebrewTypeface else standardTypeface
@@ -339,7 +392,7 @@ class HandwritingRenderer {
                         textPaint.alpha = alphaBase.coerceIn(160, 255)
 
                         if ("bdfhijkltpqugyBDFHIJKLTPQUGY".contains(char)) {
-                            textPaint.strokeWidth = 1f + (wordRng.nextFloat() * 1.5f * imperfectionLevel)
+                            textPaint.strokeWidth = 1f + (wordRng.nextFloat() * 1.0f * imperfectionLevel)
                             textPaint.style = Paint.Style.FILL_AND_STROKE
                         } else {
                             textPaint.strokeWidth = 1f
@@ -355,10 +408,7 @@ class HandwritingRenderer {
 
                     textCanvas.save()
 
-                    val charRot = (wordRng.nextFloat() * 7f - 3.5f) * imperfectionLevel
-                    val charSkew = (wordRng.nextFloat() * 0.16f - 0.08f) * imperfectionLevel
-
-                    textCanvas.translate(x, currentY + vJitter)
+                    textCanvas.translate(x, (currentY + vJitter).toFloat())
                     textCanvas.rotate(charRot)
 
                     val skewMatrix = Matrix()
@@ -369,8 +419,8 @@ class HandwritingRenderer {
                     textCanvas.restore()
 
                     val charWidth = textPaint.measureText(char.toString())
-                    val spacingVar = (wordRng.nextFloat() * 0.4f - 0.2f) * imperfectionLevel
-                    val advance = charWidth * (1.30f + spacingVar) + 4f
+                    val spacingVar = (wordRng.nextFloat() * 0.04f - 0.02f) * imperfectionLevel
+                    val advance = charWidth * (wordAdvanceMult + spacingVar)
                     x += advance
                     charIdx++
                 }
