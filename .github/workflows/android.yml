@@ -1,9 +1,9 @@
-name: Build Android APK
+name: Build Kotlin Android APK
 
 on:
   push:
-    branches: [ main, master ] # Triggers whenever you push to main or master
-  workflow_dispatch: # Allows you to trigger the build manually from GitHub
+    branches: [ main, master ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -18,16 +18,17 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
+          cache: 'gradle' # Automatically caches Kotlin/Gradle dependencies
 
-      - name: Change Gradle permissions
+      - name: Grant Execute Permission for Gradle
         run: chmod +x ./gradlew
 
-      - name: Build Debug APK
+      - name: Build Debug APK with Gradle
         run: ./gradlew assembleDebug
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: my-app-apk
+          name: kotlin-app-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
 
