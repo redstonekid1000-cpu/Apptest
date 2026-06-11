@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -22,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -391,6 +393,50 @@ fun AuthScreen(viewModel: AuditViewModel, modifier: Modifier = Modifier) {
                             letterSpacing = 0.5.sp
                         )
                     }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        androidx.compose.material3.Card(
+            colors = androidx.compose.material3.CardDefaults.cardColors(
+                containerColor = Color(0xFFF0FDF4)
+            ),
+            shape = RoundedCornerShape(12.dp),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFBBF7D0)),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable {
+                    email = "admin@gmail.com"
+                    password = "admin"
+                    isSignUp = false
+                }
+        ) {
+            Row(
+                modifier = Modifier.padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = androidx.compose.material.icons.Icons.Default.Info,
+                    contentDescription = "Admin Hint",
+                    tint = Color(0xFF16A34A),
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Column {
+                    Text(
+                        text = "Lifetime Admin Access Available",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF14532D)
+                    )
+                    Text(
+                        text = "Tap here to autofill \"admin@gmail.com\" for free unlimited generations forever.",
+                        fontSize = 11.sp,
+                        color = Color(0xFF15803D),
+                        lineHeight = 15.sp
+                    )
                 }
             }
         }

@@ -79,11 +79,11 @@ class HandwritingRenderer {
         val textStartY = (100 * scale).toInt()
         val redLineX = (48 * scale).toInt()
 
-        // 1. Setup fonts
+        // 1. Setup fonts (catching Throwable to avoid native crashes on faulty TTF files)
         val standardTypeface = if (fontPath != null && File(fontPath).exists()) {
             try {
                 Typeface.createFromFile(File(fontPath))
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Typeface.create(Typeface.create("serif", Typeface.NORMAL), Typeface.NORMAL)
             }
         } else {
@@ -93,14 +93,14 @@ class HandwritingRenderer {
         val hebrewTypeface = if (hebrewFontPath != null && File(hebrewFontPath).exists()) {
             try {
                 Typeface.createFromFile(File(hebrewFontPath))
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Typeface.create(Typeface.create("cursive", Typeface.NORMAL), Typeface.NORMAL)
             }
         } else {
             Typeface.create(Typeface.create("cursive", Typeface.NORMAL), Typeface.NORMAL)
         }
 
-        // 2. Create high-res canvas bitamp
+        // 2. Create high-res canvas background image (paper and lines)
         val canvasBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(canvasBitmap)
 
@@ -116,8 +116,9 @@ class HandwritingRenderer {
             applyLightingAndShadows(canvas)
         }
 
-        // Create background-only reference bitmap for exact 40% ink blending matching python
-        val bgBitmap = canvasBitmap.copy(Bitmap.Config.ARGB_8888, true)
+        // 4. Create separate transparent bitmap specifically to draw custom text characters elegantly
+        val textBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val textCanvas = Canvas(textBitmap)
 
         // Setup base paint for rendering text
         val baseInkColor = if (inkColor == InkColor.PENCIL) getPencilColor(20) else inkColor.colorVal
@@ -254,7 +255,7 @@ class HandwritingRenderer {
 
                     textPaint.textSize = baseFontSize * sizeScale
 
-                    canvas.save()
+                    textCanvas.save()
                     
                     // Slant & tilt rotations matching Python transforms
                     val charRot = (wordRng.nextFloat() * 7f - 3.5f) * imperfectionLevel
@@ -265,15 +266,15 @@ class HandwritingRenderer {
                     val specialHebrewShift = if (char == 'י') (baseFontSize * 0.5f) else 0f
                     val pasteY = currentY + vJitter - specialHebrewShift
 
-                    canvas.translate(pasteX, pasteY)
-                    canvas.rotate(charRot)
+                    textCanvas.translate(pasteX, pasteY)
+                    textCanvas.rotate(charRot)
                     
                     val skewMatrix = Matrix()
                     skewMatrix.setSkew(charSkew, 0f)
-                    canvas.concat(skewMatrix)
+                    textCanvas.concat(skewMatrix)
 
-                    canvas.drawText(char.toString(), 0f, 0f, textPaint)
-                    canvas.restore()
+                    textCanvas.drawText(char.toString(), 0f, 0f, textPaint)
+                    textCanvas.restore()
 
                     // Horizontal step
                     val spacingVar = (wordRng.nextFloat() * 0.4f - 0.2f) * imperfectionLevel
@@ -352,20 +353,20 @@ class HandwritingRenderer {
 
                     textPaint.textSize = baseFontSize * sizeScale
 
-                    canvas.save()
+                    textCanvas.save()
 
                     val charRot = (wordRng.nextFloat() * 7f - 3.5f) * imperfectionLevel
                     val charSkew = (wordRng.nextFloat() * 0.16f - 0.08f) * imperfectionLevel
 
-                    canvas.translate(x, currentY + vJitter)
-                    canvas.rotate(charRot)
+                    textCanvas.translate(x, currentY + vJitter)
+                    textCanvas.rotate(charRot)
 
                     val skewMatrix = Matrix()
                     skewMatrix.setSkew(charSkew, 0f)
-                    canvas.concat(skewMatrix)
+                    textCanvas.concat(skewMatrix)
 
-                    canvas.drawText(char.toString(), 0f, 0f, textPaint)
-                    canvas.restore()
+                    textCanvas.drawText(char.toString(), 0f, 0f, textPaint)
+                    textCanvas.restore()
 
                     val charWidth = textPaint.measureText(char.toString())
                     val spacingVar = (wordRng.nextFloat() * 0.4f - 0.2f) * imperfectionLevel
@@ -376,13 +377,15 @@ class HandwritingRenderer {
             }
         }
 
-        // 5. High-fidelity Photo post-processing Filters (Affine Shear, Paper Soft warmth, contrast & brightness reduction)
-        var processedBitmap = applyPhotoEffects(canvasBitmap, applyLighting)
-
-        // 6. Blend ink depth directly with the background at BLEND_FACTOR=40% matching the PIL code
-        if (applyPencilBlend) {
-            processedBitmap = blendPixelInk(processedBitmap, bgBitmap, blendFactor = 40)
+        // 5. Meticulously blend transparent text ink directly with the background paper textures & lines
+        val blendedBitmap = if (applyPencilBlend) {
+            blendPixelInk(textBitmap, canvasBitmap, blendFactor = 40)
+        } else {
+            blendPixelInk(textBitmap, canvasBitmap, blendFactor = 0)
         }
+
+        // 6. High-fidelity Photo post-processing Filters (Affine Shear, Paper Soft warmth, contrast & brightness reduction)
+        val processedBitmap = applyPhotoEffects(blendedBitmap, applyLighting)
 
         return processedBitmap
     }
@@ -573,31 +576,33 @@ class HandwritingRenderer {
 
         for (idx in 0 until totalPixels) {
             val tp = textPixels[idx]
-            val bp = bgPixels[idx]
+            val alpha = (tp shr 24) and 0xFF
 
-            // Extract channels
-            val tr = (tp shr 16) and 0xFF
-            val tg = (tp shr 8) and 0xFF
-            val tb = tp and 0xFF
+            if (alpha > 0) {
+                // Extract channels from text ink
+                val tr = (tp shr 16) and 0xFF
+                val tg = (tp shr 8) and 0xFF
+                val tb = tp and 0xFF
 
-            val br = (bp shr 16) and 0xFF
-            val bg = (bp shr 8) and 0xFF
-            val bb = bp and 0xFF
+                // Extract channels from background paper
+                val bp = bgPixels[idx]
+                val br = (bp shr 16) and 0xFF
+                val bg = (bp shr 8) and 0xFF
+                val bb = bp and 0xFF
 
-            // If the printed pixel noticeably deviates from background template → it is text ink
-            val diff = Math.abs(tr - br) + Math.abs(tg - bg) + Math.abs(tb - bb)
-            if (diff > 22) {
-                // Meticulously blend text pixel toward background to inherit paper texture and vertical ruling line shadows
-                val r = (tr * (1f - blendRatio) + br * blendRatio).toInt().coerceIn(0, 255)
-                val g = (tg * (1f - blendRatio) + bg * blendRatio).toInt().coerceIn(0, 255)
-                val b = (tb * (1f - blendRatio) + bb * blendRatio).toInt().coerceIn(0, 255)
+                // Blend ink over background based on alpha and blendFactor
+                val inkStrength = (alpha / 255f) * (1f - blendRatio)
+                
+                val r = (tr * inkStrength + br * (1f - inkStrength)).toInt().coerceIn(0, 255)
+                val g = (tg * inkStrength + bg * (1f - inkStrength)).toInt().coerceIn(0, 255)
+                val b = (tb * inkStrength + bb * (1f - inkStrength)).toInt().coerceIn(0, 255)
 
-                textPixels[idx] = (0xFF shl 24) or (r shl 16) or (g shl 8) or b
+                bgPixels[idx] = (0xFF shl 24) or (r shl 16) or (g shl 8) or b
             }
         }
 
         val resultBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
-        resultBitmap.setPixels(textPixels, 0, w, 0, 0, w, h)
+        resultBitmap.setPixels(bgPixels, 0, w, 0, 0, w, h)
         return resultBitmap
     }
 }
