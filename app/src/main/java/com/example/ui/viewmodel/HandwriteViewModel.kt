@@ -82,9 +82,64 @@ class HandwriteViewModel(application: Application) : AndroidViewModel(applicatio
     private val caveatFile = File(fontsDir, "caveat.ttf")
     private val gveretLevinFile = File(fontsDir, "gveret_levin.ttf")
 
+    // Custom uploaded fonts states
+    private val _customFontName = MutableStateFlow<String?>(null)
+    val customFontName: StateFlow<String?> = _customFontName.asStateFlow()
+
+    private val _customHebrewFontName = MutableStateFlow<String?>(null)
+    val customHebrewFontName: StateFlow<String?> = _customHebrewFontName.asStateFlow()
+
+    private val customFontFile = File(fontsDir, "user_custom_font.ttf")
+    private val customHebrewFontFile = File(fontsDir, "user_custom_hebrew_font.ttf")
+
     init {
+        // If user already had custom fonts saved, register their custom names
+        if (customFontFile.exists()) {
+            _customFontName.value = "Custom Font (.ttf)"
+        }
+        if (customHebrewFontFile.exists()) {
+            _customHebrewFontName.value = "Custom Hebrew Font (.ttf)"
+        }
         // Automatically check/download required fonts on startup or fall back
         checkAndDownloadFonts()
+    }
+
+    fun registerCustomFont(fileUri: android.net.Uri, isHebrew: Boolean, name: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val destination = if (isHebrew) customHebrewFontFile else customFontFile
+                context.contentResolver.openInputStream(fileUri)?.use { input ->
+                    FileOutputStream(destination).use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                if (isHebrew) {
+                    _customHebrewFontName.value = name
+                } else {
+                    _customFontName.value = name
+                }
+                withContext(Dispatchers.Main) {
+                    triggerRender()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    _renderError.value = "Failed to load custom font: ${e.localizedMessage}"
+                }
+            }
+        }
+    }
+
+    fun clearCustomFont(isHebrew: Boolean) {
+        val file = if (isHebrew) customHebrewFontFile else customFontFile
+        if (file.exists()) {
+            file.delete()
+        }
+        if (isHebrew) {
+            _customHebrewFontName.value = null
+        } else {
+            _customFontName.value = null
+        }
+        triggerRender()
     }
 
     fun setTextInput(input: String) {
@@ -182,8 +237,16 @@ class HandwriteViewModel(application: Application) : AndroidViewModel(applicatio
         val lighting = _applyLighting.value
         val blend = _applyPencilBlend.value
 
-        val caveatPath = if (caveatFile.exists()) caveatFile.absolutePath else null
-        val gveretLevinPath = if (gveretLevinFile.exists()) gveretLevinFile.absolutePath else null
+        val caveatPath = when {
+            customFontFile.exists() -> customFontFile.absolutePath
+            caveatFile.exists() -> caveatFile.absolutePath
+            else -> null
+        }
+        val gveretLevinPath = when {
+            customHebrewFontFile.exists() -> customHebrewFontFile.absolutePath
+            gveretLevinFile.exists() -> gveretLevinFile.absolutePath
+            else -> null
+        }
 
         viewModelScope.launch {
             _isRendering.value = true

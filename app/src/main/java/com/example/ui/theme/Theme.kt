@@ -31,14 +31,18 @@ private val DarkColorScheme =
 
 private val LightColorScheme =
   lightColorScheme(
-    primary = EditorialPrimaryDark,
+    primary = EditorialPrimaryDark, // walnut-espresso
     onPrimary = Color.White,
-    secondary = EditorialPrimaryPurple,
+    primaryContainer = EditorialPurpleLight, // beautiful warm cream highlight
+    onPrimaryContainer = EditorialPrimaryDark,
+    secondary = EditorialPrimaryPurple, // sepia brown
     onSecondary = Color.White,
+    secondaryContainer = EditorialPurpleCard, // warm linen base
+    onSecondaryContainer = EditorialPrimaryDark,
     tertiary = EditorialPurpleLight,
     onTertiary = EditorialPrimaryDark,
-    background = EditorialBackground,
-    onBackground = EditorialTextDark,
+    background = EditorialBackground, // soft ivory-cream base
+    onBackground = EditorialTextDark, // carbon-charcoal
     surface = Color.White,
     onSurface = EditorialTextDark,
     surfaceVariant = EditorialPurpleCard,

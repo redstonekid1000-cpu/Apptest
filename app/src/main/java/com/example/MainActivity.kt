@@ -20,7 +20,7 @@ class MainActivity : ComponentActivity() {
     super.onCreate(savedInstanceState)
     enableEdgeToEdge()
     setContent {
-      MyApplicationTheme(dynamicColor = false) {
+      MyApplicationTheme(darkTheme = false, dynamicColor = false) {
         val auditViewModel: AuditViewModel = viewModel()
         val handwriteViewModel: HandwriteViewModel = viewModel()
         val currentScreen by auditViewModel.currentScreen.collectAsState()

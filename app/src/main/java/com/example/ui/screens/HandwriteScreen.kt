@@ -9,6 +9,8 @@ import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -71,6 +73,27 @@ fun HandwriteScreen(viewModel: HandwriteViewModel, auditViewModel: AuditViewMode
     val isRendering by viewModel.isRendering.collectAsState()
     val generatedBitmap by viewModel.generatedBitmap.collectAsState()
     val renderError by viewModel.renderError.collectAsState()
+
+    val customFontName by viewModel.customFontName.collectAsState()
+    val customHebrewFontName by viewModel.customHebrewFontName.collectAsState()
+
+    val fontPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            val name = getFileName(context, uri)
+            viewModel.registerCustomFont(uri, isHebrew = false, name = name)
+        }
+    }
+
+    val hebrewFontPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            val name = getFileName(context, uri)
+            viewModel.registerCustomFont(uri, isHebrew = true, name = name)
+        }
+    }
 
     // Interactive zoom/pan states for the high-res canvas card
     var scale by remember { mutableStateOf(1f) }
@@ -358,6 +381,113 @@ fun HandwriteScreen(viewModel: HandwriteViewModel, auditViewModel: AuditViewMode
 
                         Divider(color = MaterialTheme.colorScheme.outlineVariant)
 
+                        // Typography & Custom Fonts Upload Section
+                        Column {
+                            Text(
+                                text = "Typography & Custom Fonts",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(bottom = 6.dp)
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            
+                            // Standard/LTR Custom Font Card
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                                    .padding(8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("Standard / LTR Cursive Font", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                                    Text(
+                                        text = customFontName ?: "Using default Caveat Regular",
+                                        fontSize = 10.sp,
+                                        color = if (customFontName != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                    )
+                                }
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    if (customFontName != null) {
+                                        IconButton(
+                                            onClick = { viewModel.clearCustomFont(isHebrew = false) },
+                                            modifier = Modifier.size(32.dp)
+                                        ) {
+                                            Icon(Icons.Default.Clear, contentDescription = "Clear font", tint = Color.Red, modifier = Modifier.size(16.dp))
+                                        }
+                                    }
+                                    Button(
+                                        onClick = { fontPickerLauncher.launch("font/*") },
+                                        contentPadding = PaddingValues(horizontal = 10.dp),
+                                        shape = RoundedCornerShape(6.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.primary
+                                        ),
+                                        modifier = Modifier.height(28.dp)
+                                    ) {
+                                        Icon(Icons.Default.Upload, contentDescription = "Upload LTR font", modifier = Modifier.size(12.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("Load .ttf/.otf", fontSize = 10.sp)
+                                    }
+                                }
+                            }
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            // Hebrew/RTL Custom Font Card
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                                    .padding(8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("Hebrew / RTL Cursive Font", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                                    Text(
+                                        text = customHebrewFontName ?: "Using default Gveret Levin",
+                                        fontSize = 10.sp,
+                                        color = if (customHebrewFontName != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                    )
+                                }
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    if (customHebrewFontName != null) {
+                                        IconButton(
+                                            onClick = { viewModel.clearCustomFont(isHebrew = true) },
+                                            modifier = Modifier.size(32.dp)
+                                        ) {
+                                            Icon(Icons.Default.Clear, contentDescription = "Clear Hebrew font", tint = Color.Red, modifier = Modifier.size(16.dp))
+                                        }
+                                    }
+                                    Button(
+                                        onClick = { hebrewFontPickerLauncher.launch("font/*") },
+                                        contentPadding = PaddingValues(horizontal = 10.dp),
+                                        shape = RoundedCornerShape(6.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.primary
+                                        ),
+                                        modifier = Modifier.height(28.dp)
+                                    ) {
+                                        Icon(Icons.Default.Upload, contentDescription = "Upload RTL font", modifier = Modifier.size(12.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("Load .ttf/.otf", fontSize = 10.sp)
+                                    }
+                                }
+                            }
+                        }
+
+                        Divider(color = MaterialTheme.colorScheme.outlineVariant)
+
                         // 1. Selector for Paper Type
                         Column {
                             Text("Notebook Paper Background", fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 6.dp))
@@ -535,7 +665,9 @@ fun HandwriteScreen(viewModel: HandwriteViewModel, auditViewModel: AuditViewMode
                 OutlinedCard(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F5F9))
+                    colors = CardDefaults.outlinedCardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    )
                 ) {
                     Column(
                         modifier = Modifier
@@ -797,3 +929,29 @@ private fun shareBitmap(context: Context, bitmap: Bitmap?) {
         Toast.makeText(context, "Sharing failed: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
     }
 }
+
+private fun getFileName(context: Context, uri: Uri): String {
+    var result: String? = null
+    if (uri.scheme == "content") {
+        val cursor = context.contentResolver.query(uri, null, null, null, null)
+        try {
+            if (cursor != null && cursor.moveToFirst()) {
+                val index = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                if (index != -1) {
+                    result = cursor.getString(index)
+                }
+            }
+        } finally {
+            cursor?.close()
+        }
+    }
+    if (result == null) {
+        result = uri.path
+        val cut = result?.lastIndexOf('/') ?: -1
+        if (cut != -1) {
+            result = result?.substring(cut + 1)
+        }
+    }
+    return result ?: "custom_font.ttf"
+}
+
