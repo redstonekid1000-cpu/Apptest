@@ -77,7 +77,7 @@ fun AuthScreen(viewModel: AuditViewModel, modifier: Modifier = Modifier) {
     ) {
         // App header
         Text(
-            text = "The Audit.",
+            text = "Handwrite.",
             fontFamily = FontFamily.Serif,
             fontSize = 42.sp,
             fontStyle = FontStyle.Italic,
@@ -87,7 +87,7 @@ fun AuthScreen(viewModel: AuditViewModel, modifier: Modifier = Modifier) {
         )
 
         Text(
-            text = "UI/UX REVIEWS & ACCESSIBILITY AUDITS",
+            text = "DIGITAL TEXT TO NATURAL HANDWRITING",
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = 1.5.sp,

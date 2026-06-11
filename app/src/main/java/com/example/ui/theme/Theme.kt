@@ -10,24 +10,40 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
+import androidx.compose.ui.graphics.Color
+
 private val DarkColorScheme =
-  darkColorScheme(primary = Purple80, secondary = PurpleGrey80, tertiary = Pink80)
+  darkColorScheme(
+    primary = EditorialPurpleLight,
+    onPrimary = EditorialPrimaryDark,
+    secondary = EditorialPurpleCard,
+    onSecondary = EditorialPrimaryDark,
+    tertiary = Color.White,
+    onTertiary = EditorialPrimaryDark,
+    background = Color(0xFF1A1715),
+    onBackground = Color(0xFFFFFDF9),
+    surface = Color(0xFF231F1D),
+    onSurface = Color(0xFFFFFDF9),
+    surfaceVariant = Color(0xFF2D2723),
+    onSurfaceVariant = EditorialPurpleLight,
+    outline = Color(0xFF5C524A)
+  )
 
 private val LightColorScheme =
   lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40,
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
+    primary = EditorialPrimaryDark,
     onPrimary = Color.White,
+    secondary = EditorialPrimaryPurple,
     onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    tertiary = EditorialPurpleLight,
+    onTertiary = EditorialPrimaryDark,
+    background = EditorialBackground,
+    onBackground = EditorialTextDark,
+    surface = Color.White,
+    onSurface = EditorialTextDark,
+    surfaceVariant = EditorialPurpleCard,
+    onSurfaceVariant = EditorialPrimaryDark,
+    outline = EditorialBorder
   )
 
 @Composable

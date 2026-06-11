@@ -269,6 +269,36 @@ class AuditViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // HANDWRITING TRIAL AND SUBSCRIPTION PIPELINE
+    fun checkAndIncrementTrial(onAllowed: () -> Unit, onLimitReached: () -> Unit) {
+        val user = _currentUser.value
+        if (user == null) {
+            onLimitReached()
+            return
+        }
+        if (user.isSubscribed) {
+            onAllowed()
+        } else if (user.trialUses < 3) {
+            viewModelScope.launch(Dispatchers.IO) {
+                try {
+                    val updatedUser = user.copy(trialUses = user.trialUses + 1)
+                    userRepository.updateUser(updatedUser)
+                    _currentUser.value = updatedUser
+                    withContext(Dispatchers.Main) {
+                        onAllowed()
+                    }
+                } catch (e: Exception) {
+                    withContext(Dispatchers.Main) {
+                        onAllowed() // fallback
+                    }
+                }
+            }
+        } else {
+            _currentScreen.value = Screen.Paywall
+            onLimitReached()
+        }
+    }
+
     // AUDIT PIPELINE
     fun runAppAudit(appName: String, screenDesc: String) {
         val user = _currentUser.value

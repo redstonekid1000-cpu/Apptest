@@ -110,7 +110,7 @@ fun PaywallScreen(viewModel: AuditViewModel, modifier: Modifier = Modifier) {
         ) {
             // Editorial Header
             Text(
-                text = "Premium Access.",
+                text = "Premium Writer.",
                 fontFamily = FontFamily.Serif,
                 fontSize = 40.sp,
                 fontStyle = FontStyle.Italic,
@@ -120,8 +120,8 @@ fun PaywallScreen(viewModel: AuditViewModel, modifier: Modifier = Modifier) {
             )
 
             Text(
-                text = "INVEST IN YOUR VISUAL IDENTITY",
-                fontSize = 10.sp,
+                text = "RESTORE THE BEAUTY OF THE WRITTEN WORD",
+                fontSize = 9.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.2.sp,
                 color = EditorialMutedText,
@@ -143,7 +143,7 @@ fun PaywallScreen(viewModel: AuditViewModel, modifier: Modifier = Modifier) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "The Audit Club",
+                        text = "The Ink & Quill Club",
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp,
                         color = EditorialPrimaryDark
@@ -159,7 +159,7 @@ fun PaywallScreen(viewModel: AuditViewModel, modifier: Modifier = Modifier) {
                 }
 
                 Text(
-                    text = "Secure local membership. Cancel anytime. Unlocks comprehensive design evaluations, contrast analyzers, and touch target threshold audits powered by artificial intelligence.",
+                    text = "Secure local membership. Cancel anytime. Unlocks unlimited page generations, lossless PNG vector saving, premium workbook backgrounds, and professional ink color presets.",
                     fontSize = 13.sp,
                     lineHeight = 19.sp,
                     color = EditorialMutedText

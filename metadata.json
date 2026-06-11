@@ -1,6 +1,6 @@
 {
-  "name": "",
-  "description": "",
+  "name": "Handwrite",
+  "description": "Convert code and text into realistic handwriting-style images. Choose custom fonts, paper options, imperfection jitters, and realistic photo/lighting filters.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
